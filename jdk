@@ -1,0 +1,134 @@
+// set path="c:\Program Files\Java\jdk1.8.0_131\bin";%path%
+// set classpath=c:\users\alunos\programas
+// pra compilar  --- javac EchoServer.java
+// pra executar -- java EchoServer
+
+import java.io.*; 
+import java.net.*; 
+import java.util.*; 
+public class EchoServer 
+{ 
+public static void main(String[] args ) 
+{ 
+try 
+{ 
+ServerSocket s = new ServerSocket(8189); 
+Socket incoming = s.accept( ); 
+try 
+{ 
+InputStream inStream = incoming.getInputStream(); 
+OutputStream outStream = incoming.getOutputStream(); 
+
+Scanner in = new Scanner(inStream); 
+PrintWriter out = new PrintWriter(outStream, true /* autoFlush */); 
+out.println( "Hello! Enter BYE to exit." ); 
+
+// echo client input 
+boolean done = false; 
+while (!done && in.hasNextLine()) 
+{ 
+String line = in.nextLine(); 
+System.out.println (" " + line);
+out.println("Echo: " + line); 
+if (line.trim().equals("BYE"))
+done = true; 
+} 
+} 
+finally 
+{ 
+incoming.close(); 
+} 
+} 
+catch (IOException e) 
+{ 
+e.printStackTrace(); 
+} 
+} 
+}
+
+
+
+-----------------------------------------------
+/**
+ * @version 1.10 1997-06-27
+ * @author Cay Horstmann
+ */
+
+import java.io.*;
+import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ThreadedEchoServer
+{ 
+   static List arrayDeSockets = new ArrayList<Socket>();
+
+   public static void main(String[] args )
+   {  int i = 1;
+      ArrayList<Socket> arrayDeSockets = new ArrayList<>();
+      try
+      {  ServerSocket s = new ServerSocket(8189);
+
+         for (;;)
+         {  Socket incoming = s.accept( );
+            System.out.println("Spawning " + i);
+            
+            arrayDeSockets.add(incoming);
+            ThreadedEchoHandler threadAtual = new ThreadedEchoHandler(incoming, i, arrayDeSockets);
+            
+            threadAtual.start();
+            i++;
+         }
+      }
+      catch (Exception e)
+      {  System.out.println(e);
+      }
+   }
+}
+
+class ThreadedEchoHandler extends Thread
+{  
+      List arrSoc = new ArrayList<Socket>();
+
+      public ThreadedEchoHandler(Socket i, int c, List arr)
+   { 
+         incoming = i; counter = c; this.arrSoc = arr;
+      }
+
+   public void run()
+   {  try
+      {  BufferedReader in = new BufferedReader
+            (new InputStreamReader(incoming.getInputStream()));
+         PrintWriter out = new PrintWriter
+            (incoming.getOutputStream(), true /* autoFlush */);
+
+         out.println( "Hello! Enter BYE to exit." );
+
+         boolean done = false;
+         while (!done)
+         {  String str = in.readLine();
+             System.out.println (incoming + " - " +str);
+            if (str == null) done = true;
+            else
+            {  out.println("Echo (" + counter + "): " + str);
+
+               for(int j = 0; j < arrSoc.size(); j++) {
+                     Socket soc = (Socket) arrSoc.get(j);
+                     PrintWriter outGeral = new PrintWriter(soc.getOutputStream(), true /* autoFlush */);
+                     outGeral.println("Echo (" + counter + "): " + str);
+               }
+
+               if (str.trim().equals("BYE"))
+                  done = true;
+            }
+         }
+         incoming.close();
+      }
+      catch (Exception e)
+      {  System.out.println(e);
+      }
+   }
+
+   private Socket incoming;
+   private int counter;
+}
